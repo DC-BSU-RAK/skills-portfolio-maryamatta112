@@ -1,0 +1,373 @@
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+import os
+
+# ---------------------------------------------------------
+#  where to find student mark.txt"
+# ---------------------------------------------------------
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE_PATH = os.path.join(SCRIPT_DIR, "A1 - Resources", "studentMarks.txt")
+# If your folder is "resources",  use:
+# DATA_FILE_PATH = os.path.join(SCRIPT_DIR, "resources", "studentMarks.txt")
+
+
+# ---------------------------------------------------------
+#   working with the data
+# ---------------------------------------------------------
+
+def compute_fields(student):
+    """Compute coursework total, overall percent, and grade."""
+    cw_total = student["cw1"] + student["cw2"] + student["cw3"]  # out of 60
+    exam = student["exam"]  # out of 100
+    overall = (cw_total + exam) / 160.0 * 100.0
+
+    if overall >= 70:
+        grade = "A"
+    elif overall >= 60:
+        grade = "B"
+    elif overall >= 50:
+        grade = "C"
+    elif overall >= 40:
+        grade = "D"
+    else:
+        grade = "F"
+
+    student["cw_total"] = cw_total
+    student["overall"] = overall
+    student["grade"] = grade
+
+
+def load_students(path):
+    students = []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            first_line = f.readline().strip()
+
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+
+                parts = line.split(",")
+                if len(parts) != 6:
+                    continue
+
+                code_str, name, c1_str, c2_str, c3_str, exam_str = parts
+
+                try:
+                    code = int(code_str)
+                    c1 = int(c1_str)
+                    c2 = int(c2_str)
+                    c3 = int(c3_str)
+                    exam = int(exam_str)
+                except:
+                    continue
+
+                student = {
+                    "code": code,
+                    "name": name,
+                    "cw1": c1,
+                    "cw2": c2,
+                    "cw3": c3,
+                    "exam": exam
+                }
+                compute_fields(student)
+                students.append(student)
+
+    except FileNotFoundError:
+        messagebox.showerror("File Error", "studentMarks.txt not found.")
+
+    return students
+
+
+def save_students(path, students):
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(str(len(students)) + "\n")
+            for s in students:
+                line = "{},{},{},{},{},{}\n".format(
+                    s["code"], s["name"], s["cw1"], s["cw2"], s["cw3"], s["exam"]
+                )
+                f.write(line)
+    except Exception as e:
+        messagebox.showerror("Save Error", str(e))
+
+
+def format_student(student):
+    return (
+        "Student Name   : {}\n".format(student["name"]) +
+        "Student Number : {}\n".format(student["code"]) +
+        "Coursework     : {} / 60\n".format(student["cw_total"]) +
+        "Exam Mark      : {} / 100\n".format(student["exam"]) +
+        "Overall %      : {:.1f}%\n".format(student["overall"]) +
+        "Grade          : {}\n".format(student["grade"])
+    )
+
+
+def find_student(students, query):
+    query = query.strip()
+
+    # Try code
+    try:
+        code = int(query)
+        for s in students:
+            if s["code"] == code:
+                return s
+    except:
+        pass
+
+    # Try name
+    for s in students:
+        if s["name"].lower() == query.lower():
+            return s
+
+    return None
+
+
+# ---------------------------------------------------------
+#   THE TKINTER APP
+# ---------------------------------------------------------
+
+class StudentManagerApp:
+    def __init__(self, master, students):
+        self.master = master
+        self.students = students
+
+        master.title("Student Manager")
+        master.geometry("800x500")
+
+        #The Menu Bar
+        menubar = tk.Menu(master)
+
+        main_menu = tk.Menu(menubar, tearoff=0)
+        main_menu.add_command(label="1. View All Records", command=self.view_all)
+        main_menu.add_command(label="2. View Individual Record", command=self.view_one)
+        main_menu.add_command(label="3. Show Highest Overall", command=self.show_highest)
+        main_menu.add_command(label="4. Show Lowest Overall", command=self.show_lowest)
+        menubar.add_cascade(label="Main Options", menu=main_menu)
+
+        extra_menu = tk.Menu(menubar, tearoff=0)
+        extra_menu.add_command(label="5. Sort Records", command=self.sort_records)
+        extra_menu.add_command(label="6. Add Student", command=self.add_student)
+        extra_menu.add_command(label="7. Delete Student", command=self.delete_student)
+        extra_menu.add_command(label="8. Update Student", command=self.update_student)
+        menubar.add_cascade(label="Extra Options", menu=extra_menu)
+
+        master.config(menu=menubar)
+
+        #  The Text area
+        self.text = tk.Text(master, wrap="word", font=("Consolas", 11))
+        self.text.pack(side="left", fill="both", expand=True)
+
+        scrollbar = tk.Scrollbar(master, command=self.text.yview)
+        scrollbar.pack(side="right", fill="y")
+        self.text.config(yscrollcommand=scrollbar.set)
+
+        # The greeting message
+        self.display("Welcome to Student Manager\n\nSelect a menu option above.")
+
+    def display(self, message):
+        self.text.config(state=tk.NORMAL)
+        self.text.delete("1.0", tk.END)
+        self.text.insert(tk.END, message)
+        self.text.config(state=tk.DISABLED)
+
+    # -----------------------------------------
+    # 1. See the student details
+    # -----------------------------------------
+    def view_all(self):
+        if not self.students:
+            self.display("No students found.")
+            return
+
+        lines = []
+        total = 0.0
+
+        for s in self.students:
+            lines.append(format_student(s))
+            lines.append("-" * 50)
+            total += s["overall"]
+
+        avg = total / len(self.students)
+
+        lines.append("\nNumber of students: {}".format(len(self.students)))
+        lines.append("Average percentage: {:.1f}%".format(avg))
+
+        self.display("\n".join(lines))
+
+    # -----------------------------------------
+    # 2. See the Individual Student
+    # -----------------------------------------
+    def view_one(self):
+        q = simpledialog.askstring("Find Student", "Enter student number or name:")
+        if not q:
+            return
+
+        s = find_student(self.students, q)
+        if not s:
+            messagebox.showinfo("Not Found", "No matching student.")
+            return
+
+        self.display(format_student(s))
+
+    # -----------------------------------------
+    # 3. Top overall
+    # -----------------------------------------
+    def show_highest(self):
+        if not self.students:
+            return
+
+        s = max(self.students, key=lambda x: x["overall"])
+        self.display("Highest Mark:\n\n" + format_student(s))
+
+    # -----------------------------------------
+    # 4. Lowest overall
+    # -----------------------------------------
+    def show_lowest(self):
+        if not self.students:
+            return
+
+        s = min(self.students, key=lambda x: x["overall"])
+        self.display("Lowest Mark:\n\n" + format_student(s))
+
+    # -----------------------------------------
+    # 5. Sort the Records
+    # -----------------------------------------
+    def sort_records(self):
+        order = simpledialog.askstring("Sort", "Enter 'asc' or 'desc':")
+        if not order:
+            return
+
+        order = order.lower()
+        if order not in ("asc", "desc"):
+            messagebox.showerror("Error", "Invalid option.")
+            return
+
+        reverse = (order == "desc")
+        sorted_list = sorted(self.students, key=lambda x: x["overall"], reverse=reverse)
+
+        lines = ["Students sorted ({}ending):".format(order)]
+        lines.append("")
+
+        for s in sorted_list:
+            lines.append(format_student(s))
+            lines.append("-" * 50)
+
+        self.display("\n".join(lines))
+
+    # -----------------------------------------
+
+    # 6. Add New Student
+    # -----------------------------------------
+    def add_student(self):
+        try:
+            code = simpledialog.askinteger("Add", "Enter student number:")
+            if code is None:
+                return
+
+            # Unique student code check
+            for s in self.students:
+                if s["code"] == code:
+                    messagebox.showerror("Error", "Student code must be unique.")
+                    return
+
+            name = simpledialog.askstring("Add", "Enter student name:")
+            if not name:
+                return
+
+            c1 = simpledialog.askinteger("Add", "Enter coursework mark 1 (0-20):")
+            c2 = simpledialog.askinteger("Add", "Enter coursework mark 2 (0-20):")
+            c3 = simpledialog.askinteger("Add", "Enter coursework mark 3 (0-20):")
+            exam = simpledialog.askinteger("Add", "Enter exam mark (0-100):")
+
+            if None in (c1, c2, c3, exam):
+                return
+
+            new_s = {
+                "code": code,
+                "name": name,
+                "cw1": c1,
+                "cw2": c2,
+                "cw3": c3,
+                "exam": exam
+            }
+            compute_fields(new_s)
+            self.students.append(new_s)
+            save_students(DATA_FILE_PATH, self.students)
+            messagebox.showinfo("Success", "Student added.")
+            self.view_all()
+
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    # -----------------------------------------
+    # 7. remove the student
+    # -----------------------------------------
+    def delete_student(self):
+        q = simpledialog.askstring("Delete", "Enter student number or name:")
+        if not q:
+            return
+
+        s = find_student(self.students, q)
+        if not s:
+            messagebox.showinfo("Not Found", "Student not found.")
+            return
+
+        confirm = messagebox.askyesno("Confirm", "Delete this student?")
+        if not confirm:
+            return
+
+        self.students.remove(s)
+        save_students(DATA_FILE_PATH, self.students)
+        messagebox.showinfo("Deleted", "Student removed.")
+        self.view_all()
+
+    # -----------------------------------------
+    # 8. Update a Student 
+    # -----------------------------------------
+    def update_student(self):
+        q = simpledialog.askstring("Update", "Enter student number or name:")
+        if not q:
+            return
+
+        s = find_student(self.students, q)
+        if not s:
+            messagebox.showinfo("Error", "Student not found.")
+            return
+
+        new_name = simpledialog.askstring("Update", "Enter new name (leave blank to keep):")
+        if new_name:
+            s["name"] = new_name
+
+        def ask_update(prompt, old):
+            value = simpledialog.askstring("Update", "{} (blank = keep):".format(prompt))
+            if value is None or value.strip() == "":
+                return old
+            try:
+                return int(value)
+            except:
+                messagebox.showerror("Error", "Invalid number.")
+                return old
+
+        s["cw1"] = ask_update("CW1", s["cw1"])
+        s["cw2"] = ask_update("CW2", s["cw2"])
+        s["cw3"] = ask_update("CW3", s["cw3"])
+        s["exam"] = ask_update("Exam", s["exam"])
+
+        compute_fields(s)
+        save_students(DATA_FILE_PATH, self.students)
+
+        messagebox.showinfo("Updated", "Record updated.")
+        self.display("Updated record:\n\n" + format_student(s))
+
+
+# ---------------------------------------------------------
+# THE  MAIN PROGRAM
+# ---------------------------------------------------------
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    students_data = load_students(DATA_FILE_PATH)
+    app = StudentManagerApp(root, students_data)
+    root.mainloop()
