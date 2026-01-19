@@ -1,0 +1,47 @@
+🧪 TESTING ( FROM START TO THE END)
+
+1. Application Launch Test
+basically what should happen:
+.the quiz page should open
+.home screen should be visible 
+![alt text](image.png)
+This screenshot shows the quiz application successfully launching and displaying the home screen, allowing the user to begin interaction with the application
+
+2. User Input Test (Before Starting the Quiz)
+What should happen here
+
+The number appears correctly in the input field for example i wrote 3 there
+![alt text](image-2.png)
+2: User Input for Quiz Setup
+This screenshot shows the user entering the number of questions before starting the quiz, confirming that user input is accepted correctly.
+
+3. Star thet Quiz and API Data Test
+what should happen here now
+A quiz question appears
+![alt text](image-3.png)
+
+
+4. Correct Answer Test
+What should happen
+A “Correct” message appears
+![alt text](image-4.png)
+Correct Answer Feedback
+This screenshot shows feedback provided when the user selects the correct answer
+
+5. Incorrect Answer Test
+what is expected
+A “Wrong” message appears and correct answer shows
+![alt text](image-5.png)
+This screenshot shows the application correctly identifying an incorrect answer and displaying the correct answer for user feedback.
+
+6. Next Question Navigation Test
+what to expect
+A new question loads
+![alt text](image-6.png)
+This screenshot confirms that the application successfully navigates to the next quiz question when the user clicks the Next button.
+
+7. End of Quiz & Final Score Test
+what to expect
+final score is now displayed
+![alt text](image-7.png)
+This screenshot shows the final score displayed at the end of the quiz, confirming that the quiz completion and scoring features work correctly.
